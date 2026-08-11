@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+#qr-reader {
+  width: 100%;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 550px !important;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+#qr-reader img {
+  display: none !important;
+}
+
+#qr-reader__dashboard,
+#qr-reader__header_message,
+#qr-reader__status_span,
+#qr-reader__scan_region img {
+  display: none !important;
+}
+
+#qr-reader {
+  border: none !important;
+}
