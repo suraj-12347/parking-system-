@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import axiosInstance from "../api/axioInstance";
 import {
   Edit,
   Trash2,
@@ -47,6 +48,7 @@ const Students = () => {
       );
 
       setStudents([]);
+      console.log("students:", students);
 
       toast.error(
         error.response?.data?.message ||
@@ -361,15 +363,14 @@ const Students = () => {
 
                                 {student.photo ? (
 
-                                  <img
-                                    src={`http://localhost:4000/${student.photo.replace(
-                                      /^\/+/,
-                                      ""
-                                    )}`}
-                                    alt={student.name}
-                                    className="h-full w-full object-cover"
-                                  />
-
+<img
+  src={`${axiosInstance.defaults.baseURL.replace(
+    /\/api\/?$/,
+    ""
+  )}/${student.photo.replace(/^\/+/, "")}`}
+  alt={student.name}
+  className="h-full w-full object-cover"
+/>
                                 ) : (
 
                                   <UserRound

@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import axiosInstance from "../api/axioInstance";
 import {
   ArrowLeft,
   UserRound,
@@ -15,7 +16,7 @@ import {
 import FullScreenLayout from "../components/layout/FullScreenLayout";
 import Card from "../components/common/Card";
 import { getStudent } from "../api/studentApi";
-import axiosInstance from "../api/axioInstance";
+
 
 // Backend server
 const API_BASE_URL = "http://localhost:4000";
@@ -97,53 +98,55 @@ const StudentProfile = () => {
   // PHOTO URL
   // ========================================
 
-  const getPhotoUrl = () => {
-    if (!student?.photo) {
-      return null;
-    }
-
-    if (
-      typeof student.photo === "string" &&
-      student.photo.startsWith("http")
-    ) {
-      return student.photo;
-    }
-
-    if (typeof student.photo === "string") {
-      return `${API_BASE_URL}/${student.photo.replace(
-        /^\/+/,
-        ""
-      )}`;
-    }
-
+ const getPhotoUrl = () => {
+  if (
+    typeof student?.photo !== "string" ||
+    student.photo.trim() === ""
+  ) {
     return null;
-  };
+  }
+
+  if (
+    student.photo.startsWith("http://") ||
+    student.photo.startsWith("https://")
+  ) {
+    return student.photo;
+  }
+
+  const serverUrl = axiosInstance.defaults.baseURL.replace(
+    /\/api\/?$/,
+    ""
+  );
+
+  return `${serverUrl}/${student.photo.replace(/^\/+/, "")}`;
+};
 
   // ========================================
   // QR URL
   // ========================================
 
-  const getQrUrl = () => {
-    if (!student?.qr_code) {
-      return null;
-    }
-
-    if (
-      typeof student.qr_code === "string" &&
-      student.qr_code.startsWith("http")
-    ) {
-      return student.qr_code;
-    }
-
-    if (typeof student.qr_code === "string") {
-      return `${API_BASE_URL}/${student.qr_code.replace(
-        /^\/+/,
-        ""
-      )}`;
-    }
-
+const getQrUrl = () => {
+  if (
+    typeof student?.qr_code !== "string" ||
+    student.qr_code.trim() === ""
+  ) {
     return null;
-  };
+  }
+
+  if (
+    student.qr_code.startsWith("http://") ||
+    student.qr_code.startsWith("https://")
+  ) {
+    return student.qr_code;
+  }
+
+  const serverUrl = axiosInstance.defaults.baseURL.replace(
+    /\/api\/?$/,
+    ""
+  );
+
+  return `${serverUrl}/${student.qr_code.replace(/^\/+/, "")}`;
+};
 
   // ========================================
   // LOADING

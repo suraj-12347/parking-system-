@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import axiosInstance from "../api/axioInstance";
 import {
   ArrowLeft,
   Save,
@@ -422,19 +423,19 @@ const EditStudent = () => {
             {/* Avatar */}
 
             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-100 text-blue-600">
-              {student.photo ? (
-                <img
-                  src={`http://localhost:4000/${student.photo.replace(
-                    /^\/+/,
-                    ""
-                  )}`}
-                  alt={student.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <UserRound size={35} />
-              )}
-            </div>
+  {student.photo ? (
+    <img
+      src={`${axiosInstance.defaults.baseURL.replace(
+        "/api",
+        ""
+      )}/${student.photo.replace(/^\/+/, "")}`}
+      alt={student.name}
+      className="h-full w-full object-cover"
+    />
+  ) : (
+    <UserRound size={35} />
+  )}
+</div>
 
             {/* Student Info */}
 

@@ -17,11 +17,13 @@ const CameraScanner = ({ onScan }) => {
 
   const switchingRef = useRef(false);
 
+  const mountedRef = useRef(true);
+
   // ==========================================
   // STATE
   // ==========================================
   const [cameraName, setCameraName] =
-    useState("Back Camera");
+    useState("Front Camera");
 
   // ==========================================
   // CAMERA NAME
@@ -56,7 +58,7 @@ const CameraScanner = ({ onScan }) => {
   ) => {
     const scanner = scannerRef.current;
 
-    if (!scanner) {
+    if (!scanner || !mountedRef.current) {
       return;
     }
 
@@ -71,7 +73,6 @@ const CameraScanner = ({ onScan }) => {
 
       await scanner.start(
         cameraId,
-
         {
           fps: 30,
 
@@ -87,6 +88,7 @@ const CameraScanner = ({ onScan }) => {
         // QR SUCCESS
         // ======================================
         (decodedText) => {
+          // Prevent duplicate QR scans
           if (scannedRef.current) {
             return;
           }
@@ -98,7 +100,9 @@ const CameraScanner = ({ onScan }) => {
             decodedText
           );
 
-          // Pause scanner
+          // ======================================
+          // PAUSE SCANNER
+          // ======================================
           try {
             if (isRunningRef.current) {
               scanner.pause(true);
@@ -114,7 +118,9 @@ const CameraScanner = ({ onScan }) => {
             );
           }
 
-          // Send QR value to parent
+          // ======================================
+          // SEND QR VALUE TO PARENT
+          // ======================================
           onScan(decodedText.trim());
         },
 
@@ -123,6 +129,10 @@ const CameraScanner = ({ onScan }) => {
         // ======================================
         () => {}
       );
+
+      if (!mountedRef.current) {
+        return;
+      }
 
       isRunningRef.current = true;
 
@@ -193,9 +203,6 @@ const CameraScanner = ({ onScan }) => {
       return;
     }
 
-    // ==========================================
-    // CHECK AVAILABLE CAMERAS
-    // ==========================================
     const cameras = camerasRef.current;
 
     console.log(
@@ -203,6 +210,7 @@ const CameraScanner = ({ onScan }) => {
       cameras
     );
 
+    // Need at least 2 cameras
     if (!cameras || cameras.length < 2) {
       console.log(
         "Less than 2 cameras available."
@@ -281,11 +289,16 @@ const CameraScanner = ({ onScan }) => {
   useEffect(() => {
     let mounted = true;
 
+    mountedRef.current = true;
+
     const scanner =
       new Html5Qrcode("qr-reader");
 
     scannerRef.current = scanner;
 
+    // ==========================================
+    // INITIALIZE
+    // ==========================================
     const initializeCamera = async () => {
       try {
         // ======================================
@@ -343,9 +356,9 @@ const CameraScanner = ({ onScan }) => {
           cameras;
 
         // ======================================
-        // FIND BACK CAMERA
+        // FIND FRONT CAMERA
         // ======================================
-        let backCameraIndex =
+        let frontCameraIndex =
           cameras.findIndex(
             (camera) => {
               const label =
@@ -353,39 +366,52 @@ const CameraScanner = ({ onScan }) => {
                   ?.toLowerCase() || "";
 
               return (
-                label.includes("back") ||
-                label.includes("rear") ||
-                label.includes(
-                  "environment"
-                )
+                label.includes("front") ||
+                label.includes("user")
               );
             }
           );
 
         // ======================================
-        // IF BACK CAMERA NOT FOUND
+        // FRONT CAMERA NOT FOUND
         // ======================================
-        if (backCameraIndex === -1) {
-          backCameraIndex = 0;
+        if (frontCameraIndex === -1) {
+          console.log(
+            "Front camera not detected by label."
+          );
+
+          // Use first available camera
+          frontCameraIndex = 0;
         }
 
         // ======================================
         // SAVE CURRENT CAMERA INDEX
         // ======================================
         currentCameraIndexRef.current =
-          backCameraIndex;
+          frontCameraIndex;
 
         // ======================================
-        // SELECT CAMERA
+        // SELECT FRONT CAMERA
         // ======================================
         const selectedCamera =
           cameras[
-            backCameraIndex
+            frontCameraIndex
           ];
 
         console.log(
-          "Selected camera:",
+          "================================="
+        );
+
+        console.log(
+          "DEFAULT CAMERA:"
+        );
+
+        console.log(
           selectedCamera
+        );
+
+        console.log(
+          "================================="
         );
 
         // ======================================
@@ -398,7 +424,7 @@ const CameraScanner = ({ onScan }) => {
         );
 
         // ======================================
-        // START CAMERA
+        // START FRONT CAMERA
         // ======================================
         await startCamera(
           selectedCamera.id,
@@ -420,20 +446,25 @@ const CameraScanner = ({ onScan }) => {
     return () => {
       mounted = false;
 
+      mountedRef.current = false;
+
       const cleanup = async () => {
         try {
-          if (!scannerRef.current) {
+          const currentScanner =
+            scannerRef.current;
+
+          if (!currentScanner) {
             return;
           }
 
           // ======================================
-          // STOP CAMERA
+          // STOP CAMERA ONLY IF RUNNING
           // ======================================
           if (
             isRunningRef.current
           ) {
             try {
-              await scannerRef.current.stop();
+              await currentScanner.stop();
 
               console.log(
                 "Scanner stopped"
@@ -450,10 +481,10 @@ const CameraScanner = ({ onScan }) => {
           }
 
           // ======================================
-          // CLEAR
+          // CLEAR SCANNER
           // ======================================
           try {
-            await scannerRef.current.clear();
+            await currentScanner.clear();
 
             console.log(
               "Scanner cleared"
@@ -501,7 +532,9 @@ const CameraScanner = ({ onScan }) => {
         "
       >
 
-        {/* LEFT */}
+        {/* ======================================
+            LEFT
+        ====================================== */}
         <div>
           <h2
             className="
@@ -523,7 +556,9 @@ const CameraScanner = ({ onScan }) => {
           </p>
         </div>
 
-        {/* RIGHT */}
+        {/* ======================================
+            RIGHT
+        ====================================== */}
         <div
           className="
             flex
@@ -784,6 +819,7 @@ const CameraScanner = ({ onScan }) => {
 
           </div>
         </div>
+
       </div>
 
     </div>
