@@ -1,19 +1,21 @@
 import { getStudent } from "../api/studentApi";
+
+import {
+  getParkingSessions,
+  updateParkingSession,
+} from "../api/parkingSessionApi";
+
 import {
   createParkingLog,
-  updateParkingLog, 
 } from "../api/parkignLogApi";
 
-export const completeExitSession = async (
-  studentId
-) => {
+export const completeExitSession = async (studentId) => {
   try {
     // ==========================================
     // 1. GET STUDENT
     // ==========================================
 
-    const response =
-      await getStudent(studentId);
+    const response = await getStudent(studentId);
 
     const student =
       response?.student || response;
@@ -25,51 +27,63 @@ export const completeExitSession = async (
       };
     }
 
+    console.log(
+      "STUDENT DATA:",
+      student
+    );
+
     // ==========================================
-    // 2. GET ACTIVE SESSION FROM LOCALSTORAGE
+    // 2. GET PARKING SESSIONS
     // ==========================================
+
+    const sessionsResponse =
+      await getParkingSessions();
 
     const sessions =
-      JSON.parse(
-        localStorage.getItem(
-          "parkingSessions"
-        )
-      ) || [];
+      sessionsResponse?.sessions || [];
 
-    const sessionIndex =
-      sessions.findIndex(
-        (session) =>
-          String(
-            session.studentId
-          ).trim() ===
-            String(
-              student.enrollment
-            ).trim() &&
+    console.log(
+      "DATABASE PARKING SESSIONS:",
+      sessions
+    );
+
+    // ==========================================
+    // 3. FIND ACTIVE SESSION
+    // ==========================================
+
+    const activeSession = sessions.find(
+      (session) => {
+        const sessionStudentId =
+          session.student_id ||
+          session.studentId;
+
+        return (
+          String(sessionStudentId).trim() ===
+            String(student.enrollment).trim() &&
           session.status === "inside"
-      );
+        );
+      }
+    );
 
     // ==========================================
-    // 3. NO ACTIVE SESSION
+    // 4. NO ACTIVE SESSION
     // ==========================================
 
-    if (sessionIndex === -1) {
+    if (!activeSession) {
       return {
         status: "danger",
-        message:
-          "No Active Parking Session",
+        message: "No Active Parking Session",
         student,
       };
     }
 
-    // ==========================================
-    // 4. GET SESSION
-    // ==========================================
-
-    const activeSession =
-      sessions[sessionIndex];
+    console.log(
+      "ACTIVE SESSION FOUND:",
+      activeSession
+    );
 
     // ==========================================
-    // 5. EXIT DATE/TIME
+    // 5. DATE / TIME
     // ==========================================
 
     const now = new Date();
@@ -80,114 +94,320 @@ export const completeExitSession = async (
     const completedDate =
       now.toISOString();
 
-    // ==========================================
-    // 6. COMPLETE LOCAL SESSION
-    // ==========================================
-
-    const completedSession = {
-      ...activeSession,
-
-      status: "completed",
-
-      exitTime:
-        now.toLocaleTimeString("en-IN"),
-
-      completedDate,
-    };
+    const displayExitTime =
+      now.toLocaleTimeString(
+        "en-IN",
+        {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }
+      );
 
     // ==========================================
-    // 7. UPDATE LOCAL SESSION
+    // 6. GET ORIGINAL ENTRY TIME
     // ==========================================
 
-    sessions[sessionIndex] =
-      completedSession;
+    const entryTime =
+      activeSession.entry_time ||
+      activeSession.entryTime ||
+      activeSession.created_at ||
+      activeSession.createdAt ||
+      null;
 
-    localStorage.setItem(
-      "parkingSessions",
-      JSON.stringify(sessions)
+    console.log(
+      "ENTRY TIME FROM SESSION:",
+      entryTime
     );
 
     // ==========================================
-    // 8. SAVE/UPDATE PARKING LOG IN DATABASE
+    // 7. GET VEHICLE DATA
     // ==========================================
 
-    /*
-      Abhi database log ka ID
-      local session me nahi hai.
+    const vehicleNumber =
+      activeSession.vehicle_number ||
+      activeSession.vehicleNumber ||
+      student.vehicle_number ||
+      student.vehicleNumber ||
+      student.vehicle ||
+      null;
 
-      Isliye agar entry ke waqt DB log
-      create nahi hua hai, to yahan
-      createParkingLog use karenge.
-    */
+    const vehicleType =
+      activeSession.vehicle_type ||
+      activeSession.vehicleType ||
+      student.vehicle_type ||
+      student.vehicleType ||
+      null;
+
+    console.log(
+      "========== VEHICLE DEBUG =========="
+    );
+
+    console.log(
+      "ACTIVE SESSION:",
+      {
+        vehicle_number:
+          activeSession.vehicle_number,
+
+        vehicleNumber:
+          activeSession.vehicleNumber,
+
+        vehicle_type:
+          activeSession.vehicle_type,
+
+        vehicleType:
+          activeSession.vehicleType,
+      }
+    );
+
+    console.log(
+      "STUDENT:",
+      {
+        vehicle:
+          student.vehicle,
+
+        vehicle_number:
+          student.vehicle_number,
+
+        vehicleNumber:
+          student.vehicleNumber,
+
+        vehicle_type:
+          student.vehicle_type,
+
+        vehicleType:
+          student.vehicleType,
+      }
+    );
+
+    console.log(
+      "FINAL VEHICLE NUMBER:",
+      vehicleNumber
+    );
+
+    console.log(
+      "FINAL VEHICLE TYPE:",
+      vehicleType
+    );
+
+    console.log(
+      "==================================="
+    );
+
+    // ==========================================
+    // 8. CREATE UNIQUE LOG ID
+    // ==========================================
+
+    const logId =
+      `LOG${Date.now()}${Math.floor(
+        Math.random() * 1000
+      )}`;
+
+    // ==========================================
+    // 9. CREATE PARKING LOG
+    // ==========================================
 
     const logData = {
-      id: activeSession.id,
+      // ========================================
+      // LOG ID
+      // ========================================
+
+      id: logId,
+
+      // ========================================
+      // SESSION ID
+      // ========================================
+
+      sessionId:
+        activeSession.id,
+
+      // ========================================
+      // STUDENT
+      // ========================================
 
       studentId:
+        activeSession.student_id ||
+        activeSession.studentId ||
         student.enrollment,
 
       studentName:
+        activeSession.student_name ||
+        activeSession.studentName ||
         student.name,
 
-      vehicleNumber:
-        activeSession.vehicleNumber ||
-        student.vehicle ||
-        null,
+      // ========================================
+      // VEHICLE
+      // IMPORTANT:
+      // Backend expects vehicle_type
+      // ========================================
 
-      vehicleType:
-        activeSession.vehicle_type ||
-        student.vehicle_type ||
-        null,
+      vehicleNumber,
+
+      vehicle_type:
+        vehicleType,
+
+      // ========================================
+      // DEPARTMENT
+      // ========================================
 
       department:
-        student.department,
+        activeSession.department ||
+        student.department ||
+        null,
 
-      entryTime:
-        activeSession.createdAt,
+      // ========================================
+      // ENTRY TIME
+      // ========================================
+
+      entryTime,
+
+      // ========================================
+      // EXIT TIME
+      // ========================================
 
       exitTime,
 
+      // ========================================
+      // STATUS
+      // ========================================
+
       status: "completed",
 
+      // ========================================
+      // PARKING SLOT
+      // ========================================
+
       parkingSlot:
+        activeSession.parking_slot ||
         activeSession.parkingSlot ||
         null,
 
+      // ========================================
+      // VERIFIED BY
+      // ========================================
+
       verifiedBy:
+        activeSession.verified_by ||
         activeSession.verifiedBy ||
         "Watchman",
 
+      // ========================================
+      // PAYMENT
+      // ========================================
+
       paymentStatus:
+        activeSession.payment_status ||
         activeSession.paymentStatus ||
         "active",
 
+      // ========================================
+      // CREATED AT
+      // ========================================
+
       createdAt:
-        activeSession.createdAt,
+        activeSession.created_at ||
+        activeSession.createdAt ||
+        entryTime,
+
+      // ========================================
+      // COMPLETED DATE
+      // ========================================
 
       completedDate,
     };
 
     console.log(
-      "PARKING LOG TO DATABASE:",
+      "FINAL LOG DATA:",
       logData
     );
 
     // ==========================================
-    // 9. CREATE LOG IN DATABASE
+    // 10. SAVE LOG TO DATABASE
     // ==========================================
 
     const logResponse =
-      await createParkingLog(
-        logData
+      await createParkingLog(logData);
+
+    console.log(
+      "CREATE PARKING LOG RESPONSE:",
+      logResponse
+    );
+
+    if (
+      logResponse?.success === false
+    ) {
+      throw new Error(
+        logResponse?.message ||
+          "Failed to create parking log"
       );
+    }
 
     const savedLog =
       logResponse?.log ||
       logResponse?.parkingLog ||
       logData;
 
+    console.log(
+      "PARKING LOG SAVED:",
+      savedLog
+    );
+
     // ==========================================
-    // 10. SUCCESS
+    // 11. UPDATE PARKING SESSION
+    // ==========================================
+
+    const sessionUpdate = {
+      exitTime,
+      status: "completed",
+      completedDate,
+    };
+
+    console.log(
+      "UPDATING PARKING SESSION:",
+      sessionUpdate
+    );
+
+    const sessionResponse =
+      await updateParkingSession(
+        activeSession.id,
+        sessionUpdate
+      );
+
+    console.log(
+      "UPDATED SESSION RESPONSE:",
+      sessionResponse
+    );
+
+    // ==========================================
+    // 12. COMPLETED SESSION
+    // ==========================================
+
+    const completedSession =
+      sessionResponse?.session ||
+      sessionResponse?.parkingSession ||
+      {
+        ...activeSession,
+
+        exit_time:
+          exitTime,
+
+        exitTime:
+          displayExitTime,
+
+        status:
+          "completed",
+
+        completed_date:
+          completedDate,
+
+        completedDate:
+          completedDate,
+      };
+
+    // ==========================================
+    // 13. SUCCESS
     // ==========================================
 
     return {
@@ -206,16 +426,18 @@ export const completeExitSession = async (
     };
 
   } catch (error) {
+
     console.error(
       "COMPLETE EXIT ERROR:",
       error
     );
 
     return {
-      status: "danger", 
+      status: "danger",
 
       message:
         error.response?.data?.message ||
+        error.message ||
         "Exit Failed",
     };
   }

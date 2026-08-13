@@ -1,105 +1,145 @@
+import { clearParkingSessions } from "../api/parkingSessionApi.js";
+
+// ==========================================
+// GET LOCAL DATE
+// ==========================================
+
 const getLocalDate = () => {
   const now = new Date();
 
   return `${now.getFullYear()}-${String(
     now.getMonth() + 1
-  ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  ).padStart(2, "0")}-${String(
+    now.getDate()
+  ).padStart(2, "0")}`;
 };
 
+// ==========================================
+// CLEAR PARKING SESSIONS FROM DATABASE
+// ==========================================
 
-const clearParkingSessions = () => {
+const clearSessionsFromDatabase = async () => {
   try {
-    localStorage.setItem(
-      "parkingSessions",
-      JSON.stringify([])
+    console.log(
+      "🌙 Clearing parking sessions from database..."
     );
 
+    const response =
+      await clearParkingSessions();
+
+    console.log(
+      "✅ PARKING SESSIONS CLEARED:",
+      response
+    );
+
+    // Last cleanup date save karenge
     localStorage.setItem(
       "parkingSessionsLastCleanup",
       getLocalDate()
     );
 
-    console.log(
-      "🌙 12:00 AM - Parking sessions cleaned"
-    );
+    return response;
 
   } catch (error) {
-    console.log(
-      "❌ Parking cleanup error:",
+    console.error(
+      "❌ DATABASE PARKING SESSION CLEANUP ERROR:",
       error
     );
+
+    return null;
   }
 };
 
+// ==========================================
+// CHECK WHETHER CLEANUP IS REQUIRED
+// ==========================================
 
-export const cleanupParkingSessions = () => {
+export const cleanupParkingSessions = async () => {
   try {
     const today = getLocalDate();
 
-    const lastCleanup = localStorage.getItem(
-      "parkingSessionsLastCleanup"
+    const lastCleanup =
+      localStorage.getItem(
+        "parkingSessionsLastCleanup"
+      );
+
+    console.log("🕐 PARKING SESSION CLEANUP CHECK");
+    console.log("Today:", today);
+    console.log(
+      "Last cleanup:",
+      lastCleanup
     );
 
-    console.log("🕐 Cleanup check");
-    console.log("Today:", today);
-    console.log("Last cleanup:", lastCleanup);
+    // ========================================
+    // ALREADY CLEANED TODAY
+    // ========================================
 
-
-    // Agar aaj cleanup already ho chuka hai
     if (lastCleanup === today) {
-      console.log("⏭️ Already cleaned today");
+      console.log(
+        "⏭️ Parking sessions already cleaned today"
+      );
+
       return;
     }
 
+    // ========================================
+    // NEW DATE
+    // ========================================
 
-    // App 12 AM ke baad open hui hai
-    // to stale sessions clean kar do
-    clearParkingSessions();
+    console.log(
+      "🌙 New date detected - clearing database sessions"
+    );
+
+    await clearSessionsFromDatabase();
 
   } catch (error) {
-    console.log(
-      "❌ Cleanup check error:",
+    console.error(
+      "❌ CLEANUP CHECK ERROR:",
       error
     );
   }
 };
 
+// ==========================================
+// MIDNIGHT AUTO CLEANUP
+// ==========================================
 
 export const startMidnightCleanup = () => {
-
   const scheduleNextCleanup = () => {
-
     const now = new Date();
 
     const nextMidnight = new Date(now);
 
-    // Next day 12:00:00 AM
-    nextMidnight.setHours(24, 0, 0, 0);
+    // Next day 12:00 AM
+    nextMidnight.setHours(
+      24,
+      0,
+      0,
+      0
+    );
 
     const delay =
       nextMidnight.getTime() -
       now.getTime();
 
-
     console.log(
-      "🌙 Next cleanup:",
-      nextMidnight.toLocaleString()
+      "🌙 NEXT PARKING SESSION CLEANUP:",
+      nextMidnight.toLocaleString("en-IN")
     );
 
+    const timer = setTimeout(
+      async () => {
+        // Database se sessions clear
+        await clearSessionsFromDatabase();
 
-    const timer = setTimeout(() => {
-
-      clearParkingSessions();
-
-      // Next midnight ke liye timer dobara set karo
-      scheduleNextCleanup();
-
-    }, delay);
-
+        // Next midnight ka timer
+        scheduleNextCleanup();
+      },
+      delay
+    );
 
     return timer;
   };
-
 
   return scheduleNextCleanup();
 };

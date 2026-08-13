@@ -5,6 +5,9 @@ import studentRoutes from "./routes/studentRoutes.js";
 import cors from "cors";
 import path from "path";
 import parkingLogRoutes from "./routes/ParkingRoutes.js";
+import parkingSessionRoutes from "./routes/parkingSessionRoutes.js";
+
+
 
 
 configDotenv();
@@ -75,6 +78,10 @@ app.use("/api/students", studentRoutes);
 app.use(
   "/api/parking-logs",
   parkingLogRoutes
+);
+app.use(
+  "/api/parking-sessions",
+  parkingSessionRoutes
 );
 
 // ================================

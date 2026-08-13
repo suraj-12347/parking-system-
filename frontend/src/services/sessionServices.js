@@ -1,97 +1,234 @@
 import { validateEntry } from "./parkingValidation";
 
+import {
+  getParkingSessions,
+  createParkingSession,
+} from "../api/parkingSessionApi";
+
 export const createEntrySession = async (studentId) => {
-  console.log("CREATE ENTRY CALL:", studentId);
+  try {
+    console.log(
+      "CREATE ENTRY CALL:",
+      studentId
+    );
 
-  // 1. Validate Student
-  const validation = await validateEntry(studentId);
+    // ==========================================
+    // 1. VALIDATE STUDENT
+    // ==========================================
 
-  console.log("VALIDATION RESULT:", validation);
+    const validation =
+      await validateEntry(studentId);
 
-  // 2. Validation fail
-  if (validation.status !== "success") {
-    return validation;
-  }
+    console.log(
+      "VALIDATION RESULT:",
+      validation
+    );
 
-  // 3. Student Data
-  const student = validation.student;
+    // ==========================================
+    // 2. VALIDATION FAILED
+    // ==========================================
 
-  console.log("STUDENT DATA:", student);
+    if (
+      validation.status !== "success"
+    ) {
+      return validation;
+    }
 
-  // 4. Existing Sessions
-  const sessions =
-    JSON.parse(localStorage.getItem("parkingSessions")) || [];
+    // ==========================================
+    // 3. STUDENT DATA
+    // ==========================================
 
-  // 5. Safety Check - Already Inside
-  const activeSession = sessions.find(
-    (item) =>
-      String(item.studentId).trim() ===
-        String(student.enrollment).trim() &&
-      item.status === "inside"
-  );
+    const student =
+      validation.student;
 
-  if (activeSession) {
+    if (!student) {
+      return {
+        status: "danger",
+        message: "Student Not Found",
+      };
+    }
+
+    console.log(
+      "STUDENT DATA:",
+      student
+    );
+
+    // ==========================================
+    // 4. GET EXISTING SESSIONS
+    // ==========================================
+
+    const response =
+      await getParkingSessions();
+
+    const sessions =
+      response?.sessions || [];
+
+    console.log(
+      "DATABASE SESSIONS:",
+      sessions
+    );
+
+    // ==========================================
+    // 5. CHECK ALREADY INSIDE
+    // ==========================================
+
+    const activeSession =
+      sessions.find((item) => {
+        const sessionStudentId =
+          item.student_id ||
+          item.studentId;
+
+        return (
+          String(sessionStudentId).trim() ===
+            String(
+              student.enrollment
+            ).trim() &&
+          item.status === "inside"
+        );
+      });
+
+    if (activeSession) {
+      return {
+        status: "danger",
+
+        message:
+          "Student Already Inside",
+
+        student,
+
+        session:
+          activeSession,
+      };
+    }
+
+    // ==========================================
+    // 6. CURRENT DATE / TIME
+    // ==========================================
+
+    const now =
+      new Date();
+
+    // ==========================================
+    // 7. CREATE SESSION DATA
+    // ==========================================
+
+   // ==========================================
+// 7. CREATE SESSION DATA
+// ==========================================
+
+const newSession = {
+  id: `SES${Date.now()}`,
+
+  studentId: student.enrollment,
+
+  studentName: student.name,
+
+  vehicleNumber:
+    student.vehicle || null,
+
+  vehicle_type:
+    student.vehicle_type || null,
+
+  department:
+    student.department,
+
+  // Actual entry timestamp
+  entryTime:
+    now.toISOString(),
+
+  // Record creation timestamp
+  createdAt:
+    now.toISOString(),
+
+  // Exit abhi nahi hua
+  exitTime: null,
+
+  // Student currently inside
+  status: "inside",
+
+  parkingSlot: "A-10",
+
+  verifiedBy: "Watchman",
+
+  paymentStatus: "active",
+
+  completedDate: null,
+};
+
+    console.log(
+      "NEW SESSION:",
+      newSession
+    );
+
+    // ==========================================
+    // 8. SAVE SESSION TO DATABASE
+    // ==========================================
+
+    const createResponse =
+      await createParkingSession(
+        newSession
+      );
+
+    console.log(
+      "CREATE SESSION RESPONSE:",
+      createResponse
+    );
+
+    // ==========================================
+    // 9. CHECK API RESPONSE
+    // ==========================================
+
+    if (
+      createResponse?.success === false
+    ) {
+      return {
+        status: "danger",
+
+        message:
+          createResponse?.message ||
+          "Failed to create parking session",
+      };
+    }
+
+    // ==========================================
+    // 10. SAVED SESSION
+    // ==========================================
+
+    const savedSession =
+      createResponse?.session ||
+      createResponse?.parkingSession ||
+      newSession;
+
+    // ==========================================
+    // 11. SUCCESS
+    // ==========================================
+
+    return {
+      status: "success",
+
+      message:
+        "Entry Allowed",
+
+      student,
+
+      session:
+        savedSession,
+    };
+
+  } catch (error) {
+
+    console.error(
+      "CREATE ENTRY SESSION ERROR:",
+      error
+    );
+
     return {
       status: "danger",
-      message: "Student Already Inside",
-      student,
-      session: activeSession,
+
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create parking session",
     };
   }
-
-  // 6. Current date/time
-  const now = new Date();
-
-  // 7. Create New Session
-  const newSession = {
-    id: `SES${Date.now()}`,
-
-    studentId: student.enrollment,
-    studentName: student.name,
-
-    vehicleNumber: student.vehicle,
-    vehicle_type: student.vehicle_type,
-
-    department: student.department,
-
-    // Display ke liye
-    entryTime: now.toLocaleTimeString("en-IN"),
-
-    // Actual date/time ke liye
-    createdAt: now.toISOString(),
-
-    exitTime: null,
-
-    status: "inside",
-
-    parkingSlot: "A-10",
-
-    verifiedBy: "Watchman",
-
-    paymentStatus: "active",
-  };
-
-  // 8. Save Session
-  sessions.push(newSession);
-
-  localStorage.setItem(
-    "parkingSessions",
-    JSON.stringify(sessions)
-  );
-
-  console.log("NEW SESSION:", newSession);
-
-  console.log(
-    "SAVED SESSIONS:",
-    JSON.parse(
-      localStorage.getItem("parkingSessions")
-    )
-  );
-
-  return {
-    status: "success",
-    message: "Entry Allowed",
-    student,
-    session: newSession,
-  };
 };
