@@ -6,6 +6,7 @@ import cors from "cors";
 import path from "path";
 import parkingLogRoutes from "./routes/ParkingRoutes.js";
 import parkingSessionRoutes from "./routes/parkingSessionRoutes.js";
+import adminRoutes from "./routes/adminroutes.js";
 
 
 
@@ -82,6 +83,10 @@ app.use(
 app.use(
   "/api/parking-sessions",
   parkingSessionRoutes
+);
+app.use(
+  "/api/admin",
+  adminRoutes
 );
 
 // ================================

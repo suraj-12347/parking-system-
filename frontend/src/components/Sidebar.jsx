@@ -1,5 +1,5 @@
+import { NavLink, useNavigate } from "react-router-dom";
 
-import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -8,9 +8,12 @@ import {
   Car,
   ChevronLeft,
   PlusCircle,
+  LogOut,
 } from "lucide-react";
 
 const AdminSidebar = ({ collapsed = false, onToggle }) => {
+  const navigate = useNavigate();
+
   const menuItems = [
     {
       name: "Overview",
@@ -27,7 +30,7 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
       path: "/logs",
       icon: ClipboardList,
     },
-     {
+    {
       name: "Add New Students",
       path: "/add-student",
       icon: PlusCircle,
@@ -39,19 +42,36 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
     // },
   ];
 
+  // ==========================================
+  // LOGOUT
+  // ==========================================
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("admin");
+
+    navigate("/admin-login", {
+      replace: true,
+    });
+  };
+
   return (
     <aside
       className={`flex h-screen flex-col bg-blue-700 text-white shadow-xl transition-all duration-300 ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* Logo */}
-      <div className="flex h-20 items-center border-b border-blue-600 px-5">
+      {/* ======================================
+          LOGO
+      ====================================== */}
 
+      <div className="flex h-20 items-center border-b border-blue-600 px-5">
         <div className="flex min-w-0 items-center gap-3">
 
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-700">
-            <Car size={24} strokeWidth={2.5} />
+            <Car
+              size={24}
+              strokeWidth={2.5}
+            />
           </div>
 
           {!collapsed && (
@@ -67,11 +87,13 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
           )}
 
         </div>
-
       </div>
 
 
-      {/* Navigation */}
+      {/* ======================================
+          NAVIGATION
+      ====================================== */}
+
       <nav className="flex-1 space-y-2 px-3 py-6">
 
         {menuItems.map((item) => {
@@ -106,18 +128,48 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
       </nav>
 
 
-      {/* Bottom */}
-      <div className="border-t border-blue-600 p-3">
+      {/* ======================================
+          BOTTOM ACTIONS
+      ====================================== */}
 
+      <div className="space-y-2 border-t border-blue-600 p-3">
+
+        {/* Logout */}
         <button
           type="button"
+          onClick={handleLogout}
+          title={collapsed ? "Logout" : ""}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3.5 font-medium text-red-100 transition hover:bg-red-500 hover:text-white"
+        >
+          <LogOut
+            size={21}
+            strokeWidth={2}
+            className="shrink-0"
+          />
+
+          {!collapsed && (
+            <span>Logout</span>
+          )}
+        </button>
+
+
+        {/* Collapse Sidebar */}
+        {/* <button
+          type="button"
           onClick={onToggle}
+          title={
+            collapsed
+              ? "Expand Sidebar"
+              : "Collapse Sidebar"
+          }
           className="flex w-full items-center justify-center rounded-xl py-3 text-blue-100 transition hover:bg-blue-600 hover:text-white"
         >
           <ChevronLeft
             size={20}
             className={`transition-transform ${
-              collapsed ? "rotate-180" : ""
+              collapsed
+                ? "rotate-180"
+                : ""
             }`}
           />
 
@@ -126,7 +178,7 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
               Collapse Sidebar
             </span>
           )}
-        </button>
+        </button> */}
 
       </div>
 
@@ -135,4 +187,3 @@ const AdminSidebar = ({ collapsed = false, onToggle }) => {
 };
 
 export default AdminSidebar;
-

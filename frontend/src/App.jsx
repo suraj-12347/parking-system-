@@ -1,30 +1,57 @@
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useEffect } from "react";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+// ==========================================
+// WATCHMAN PAGES
+// ==========================================
 import EntryGate from "./pages/EntryGate";
 import ExitGate from "./pages/ExitGate";
 import Buttons from "./pages/Buttons";
 
+// ==========================================
+// ADMIN PAGES
+// ==========================================
 import Dashboard from "./pages/Dashboard";
+import AdminPage from "./pages/AdminPage";
+import AdminLogin from "./pages/AdminLogin";
+
+// ==========================================
+// ADMIN COMPONENTS
+// ==========================================
 import Students from "./components/Students";
 import Logs from "./components/Logs";
 import AddStudent from "./components/AddNewStudent";
-// import Notifications from "./pages/Notifications";
 import StudentProfile from "./components/StudentProfile";
 import EditStudent from "./components/EditStudent";
 
-import AdminPage from "./pages/AdminPage";
+// ==========================================
+// PROTECTED ROUTE
+// ==========================================
+import ProtectedRoute from "./components/ProtectedRoutes";
 
+// ==========================================
+// PARKING CLEANUP
+// ==========================================
 import {
   cleanupParkingSessions,
   startMidnightCleanup,
 } from "./utils/parkingCleanup";
 
+
 const App = () => {
 
+  // ==========================================
+  // PARKING SESSION CLEANUP
+  // ==========================================
   useEffect(() => {
 
     // App open hone par stale sessions check
@@ -39,88 +66,143 @@ const App = () => {
 
   }, []);
 
+
   return (
     <BrowserRouter>
 
       <Routes>
 
-        {/* Default */}
+        {/* ======================================
+            DEFAULT ROUTE
+        ====================================== */}
+
         <Route
           path="/"
-          element={<Navigate to="/buttons" replace />}
+          element={
+            <Navigate
+              to="/buttons"
+              replace
+            />
+          }
         />
 
-        {/* Watchman Buttons */}
+
+        {/* ======================================
+            WATCHMAN MODULE
+        ====================================== */}
+
         <Route
           path="/buttons"
           element={<Buttons />}
         />
 
-        {/* Entry Gate */}
         <Route
           path="/entry"
           element={<EntryGate />}
         />
 
-        {/* Exit Gate */}
         <Route
           path="/exit"
           element={<ExitGate />}
         />
-         {/* <Route
-          path="/admin"
-          element={<AdminPage />}
-        /> */}
-        
 
 
-        {/* ================= ADMIN PANEL ================= */}
+        {/* ======================================
+            ADMIN LOGIN
+            PUBLIC ROUTE
+        ====================================== */}
 
-        <Route  element={<AdminPage />}>
-
-          {/* Overview */}
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          {/* Students */}
-          <Route
-            path="/students"
-            element={<Students />}
-          />
-          <Route
-            path="/students/:enrollment"
-            element={<StudentProfile />}
-          />
-
-          <Route
-  path="/students/:enrollment/edit"
-  element={<EditStudent />}
-/>
-
-          {/* Logs */}
-          <Route
-            path="/logs"
-            element={<Logs />}
-          />
-           <Route
-            path="/add-student"
-            element={<AddStudent />}
-          />
+        <Route
+          path="/admin-login"
+          element={<AdminLogin />}
+        />
 
 
-          {/* Notifications */}
-          {/* <Route
-            path="/notifications"
-            element={<Notifications />}
-          /> */}
+        {/* ======================================
+            PROTECTED ADMIN MODULE
+        ====================================== */}
+
+        <Route element={<ProtectedRoute />}>
+
+          {/* ====================================
+              ADMIN LAYOUT
+          ==================================== */}
+
+          <Route element={<AdminPage />}>
+
+            {/* ==================================
+                DASHBOARD / OVERVIEW
+            ================================== */}
+
+            <Route
+              path="/dashboard"
+              element={<Dashboard />}
+            />
+
+
+            {/* ==================================
+                STUDENTS
+            ================================== */}
+
+            <Route
+              path="/students"
+              element={<Students />}
+            />
+
+            <Route
+              path="/students/:enrollment"
+              element={<StudentProfile />}
+            />
+
+            <Route
+              path="/students/:enrollment/edit"
+              element={<EditStudent />}
+            />
+
+
+            {/* ==================================
+                LOGS
+            ================================== */}
+
+            <Route
+              path="/logs"
+              element={<Logs />}
+            />
+
+
+            {/* ==================================
+                ADD STUDENT
+            ================================== */}
+
+            <Route
+              path="/add-student"
+              element={<AddStudent />}
+            />
+
+
+            {/* ==================================
+                NOTIFICATIONS
+            ================================== */}
+
+            {/* 
+            <Route
+              path="/notifications"
+              element={<Notifications />}
+            />
+            */}
+
+          </Route>
 
         </Route>
 
       </Routes>
 
-       <ToastContainer
+
+      {/* ========================================
+          TOAST
+      ======================================== */}
+
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}

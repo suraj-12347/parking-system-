@@ -1,14 +1,17 @@
+import { NavLink, useNavigate } from "react-router-dom";
 
-import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
   ClipboardList,
   Bell,
   PlusCircle,
+  LogOut,
 } from "lucide-react";
 
 const AdminBottomNav = () => {
+  const navigate = useNavigate();
+
   const menuItems = [
     {
       name: "Overview",
@@ -20,8 +23,8 @@ const AdminBottomNav = () => {
       path: "/students",
       icon: Users,
     },
-     {
-      name: "Add New Student",
+    {
+      name: "Add Student",
       path: "/add-student",
       icon: PlusCircle,
     },
@@ -37,10 +40,26 @@ const AdminBottomNav = () => {
     },
   ];
 
+  // ==========================================
+  // LOGOUT
+  // ==========================================
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("admin");
+
+    navigate("/admin-login", {
+      replace: true,
+    });
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
 
-      <div className="mx-auto flex h-20 max-w-xl items-center justify-around px-2">
+      <div className="mx-auto flex h-20 max-w-xl items-center px-1">
+
+        {/* ==================================
+            NAVIGATION ITEMS
+        ================================== */}
 
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -50,7 +69,7 @@ const AdminBottomNav = () => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex min-w-[70px] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 transition ${
+                `flex flex-1 items-center justify-center rounded-xl py-3 transition ${
                   isActive
                     ? "bg-blue-50 text-blue-700"
                     : "text-slate-500 hover:text-blue-600"
@@ -58,26 +77,32 @@ const AdminBottomNav = () => {
               }
             >
               {({ isActive }) => (
-                <>
-                  <Icon
-                    size={22}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-
-                  {/* <span
-                    className={`text-xs ${
-                      isActive
-                        ? "font-semibold"
-                        : "font-medium"
-                    }`}
-                  >
-                    {item.name}
-                  </span> */}
-                </>
+                <Icon
+                  size={22}
+                  strokeWidth={
+                    isActive ? 2.5 : 2
+                  }
+                />
               )}
             </NavLink>
           );
         })}
+
+        {/* ==================================
+            LOGOUT
+        ================================== */}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          title="Logout"
+          className="flex flex-1 items-center justify-center rounded-xl py-3 text-red-500 transition hover:bg-red-50 hover:text-red-600"
+        >
+          <LogOut
+            size={22}
+            strokeWidth={2}
+          />
+        </button>
 
       </div>
 
@@ -86,12 +111,3 @@ const AdminBottomNav = () => {
 };
 
 export default AdminBottomNav;
-
-
-
-
-
-
-
-
-
