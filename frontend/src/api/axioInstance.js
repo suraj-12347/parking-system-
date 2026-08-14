@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const axiosInstance = axios.create({
-  baseURL: "http://localhost:4000/api",
+const axiosInstance = axios.create({ 
+  baseURL: "https://parking-system-2-kv3h.onrender.com/api",
 });
 
 // JWT automatically attach hoga
