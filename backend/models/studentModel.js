@@ -1,5 +1,6 @@
 import pool from "../config/db.js";
 
+
 class StudentModel {
   // ==========================================
   // GET ALL STUDENTS
@@ -45,62 +46,65 @@ class StudentModel {
   // ==========================================
   // CREATE STUDENT
   // ==========================================
-  static async create(student) {
-    const {
+static async create(student) {
+  const {
+    enrollment,
+    name,
+    password,
+    photo,
+    course,
+    department,
+    vehicle,
+    vehicle_type,
+    subscription,
+    qr_code,
+  } = student;
+
+  const [result] = await pool.query(
+    `INSERT INTO students 
+    (
       enrollment,
       name,
+      password,
       photo,
       course,
       department,
       vehicle,
       vehicle_type,
-      subscription,
-      qr_code,
-    } = student;
+      active,
+      blacklisted,
+      subscription_active,
+      subscription_valid_from,
+      subscription_valid_till,
+      qr_code
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      enrollment,
+      name,
+      password,
+      photo || null,
+      course,
+      department,
+      vehicle || null,
+      vehicle_type || null,
 
-    const [result] = await pool.query(
-      `INSERT INTO students
-      (
-        enrollment,
-        name,
-        photo,
-        course,
-        department,
-        vehicle,
-        vehicle_type,
-        active,
-        blacklisted,
-        subscription_active,
-        subscription_valid_from,
-        subscription_valid_till,
-        qr_code
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        enrollment,
-        name,
-        photo || null,
-        course,
-        department,
-        vehicle || null,
-        vehicle_type || null,
+      // Default status
+      1,
+      0,
 
-        // Default status
-        1,
-        0,
+      // Subscription
+      subscription?.active ? 1 : 0,
+      subscription?.validFrom || null,
+      subscription?.validTill || null,
 
-        // Subscription
-        subscription?.active ? 1 : 0,
-        subscription?.validFrom || null,
-        subscription?.validTill || null,
+      // QR
+      qr_code || null,
+    ]
+  );
 
-        // QR
-        qr_code || null,
-      ]
-    );
-
-    return result;
-  }
+  return result;
+}
 
   // ==========================================
   // UPDATE SUBSCRIPTION
@@ -222,6 +226,66 @@ class StudentModel {
 
     return result;
   }
+
+  // ==========================================
+// UPDATE STUDENT PASSWORD
+// ==========================================
+static async updatePassword(enrollment, hashedPassword) {
+  const [result] = await pool.query(
+    `UPDATE students
+     SET password = ?
+     WHERE enrollment = ?`,
+    [
+      hashedPassword,
+      enrollment,
+    ]
+  );
+
+  return result;
+}
+
+// ==========================================
+// GET STUDENT FOR LOGIN
+// ==========================================
+// ==========================================
+// GET STUDENT FOR LOGIN
+// ==========================================
+static async getForLogin(enrollment) {
+  const cleanEnrollment = enrollment
+    .trim()
+    .toUpperCase();
+
+  console.log("LOGIN ENROLLMENT:", cleanEnrollment);
+
+  const [rows] = await pool.query(
+    `SELECT *
+     FROM students
+     WHERE UPPER(TRIM(enrollment)) = UPPER(TRIM(?))
+     LIMIT 1`,
+    [cleanEnrollment]
+  );
+
+  console.log("LOGIN STUDENT:", rows[0]);
+
+  return rows[0];
+}
+
+// ==========================================
+// GET LOGGED-IN STUDENT BY TOKEN
+// ==========================================
+static async getByIdForLogin(enrollment) {
+  const [rows] = await pool.query(
+    `SELECT *
+     FROM students
+     WHERE LOWER(enrollment) = LOWER(?)`,
+    [enrollment]
+  );
+
+  return rows[0];
+}
+
+
+
 }
 
 export default StudentModel;

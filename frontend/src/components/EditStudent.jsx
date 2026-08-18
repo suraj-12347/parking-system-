@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../api/axioInstance";
+
 import {
   ArrowLeft,
   Save,
@@ -10,7 +11,11 @@ import {
   CalendarDays,
   UserRound,
   AlertTriangle,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+
 import { toast } from "react-toastify";
 
 import FullScreenLayout from "../components/layout/FullScreenLayout";
@@ -22,6 +27,7 @@ import {
   updateStudentBlacklist,
   updateSubscription,
   deleteStudent,
+  resetStudentPassword,
 } from "../api/studentApi";
 
 const EditStudent = () => {
@@ -33,6 +39,15 @@ const EditStudent = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // ========================================
+  // PASSWORD STATE
+  // ========================================
+
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] =
+    useState(false);
 
   // ========================================
   // FORM STATE
@@ -81,7 +96,8 @@ const EditStudent = () => {
       try {
         setLoading(true);
 
-        const response = await getStudent(enrollment);
+        const response =
+          await getStudent(enrollment);
 
         const studentData =
           response?.student || response;
@@ -291,13 +307,84 @@ const EditStudent = () => {
   };
 
   // ========================================
+  // RESET STUDENT PASSWORD
+  // ========================================
+
+  const handleResetPassword = async () => {
+    const password =
+      newPassword.trim();
+
+    // ----------------------------------------
+    // VALIDATION
+    // ----------------------------------------
+
+    if (!password) {
+      toast.error(
+        "Please enter a new password"
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error(
+        "Password must be at least 6 characters"
+      );
+      return;
+    }
+
+    // ----------------------------------------
+    // CONFIRMATION
+    // ----------------------------------------
+
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to reset the password for ${student?.name} (${student?.enrollment})?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setResettingPassword(true);
+
+      await resetStudentPassword(
+        enrollment,
+        password
+      );
+
+      toast.success(
+        "Student password reset successfully"
+      );
+
+      // Clear password
+      setNewPassword("");
+      setShowPassword(false);
+
+    } catch (error) {
+      console.error(
+        "Reset password error:",
+        error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to reset student password"
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  // ========================================
   // DELETE STUDENT
   // ========================================
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to permanently delete ${student?.name} (${student?.enrollment})?`
-    );
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to permanently delete ${student?.name} (${student?.enrollment})?`
+      );
 
     if (!confirmed) {
       return;
@@ -306,7 +393,9 @@ const EditStudent = () => {
     try {
       setDeleting(true);
 
-      await deleteStudent(enrollment);
+      await deleteStudent(
+        enrollment
+      );
 
       toast.success(
         "Student deleted successfully"
@@ -337,11 +426,13 @@ const EditStudent = () => {
       <FullScreenLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
           <div className="text-center">
+
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
 
             <p className="text-sm text-slate-500">
               Loading student...
             </p>
+
           </div>
         </div>
       </FullScreenLayout>
@@ -356,8 +447,11 @@ const EditStudent = () => {
     return (
       <FullScreenLayout>
         <div className="flex min-h-[60vh] items-center justify-center">
+
           <Card>
+
             <div className="p-8 text-center">
+
               <h2 className="text-xl font-semibold text-slate-700">
                 Student Not Found
               </h2>
@@ -371,8 +465,11 @@ const EditStudent = () => {
               >
                 Back to Students
               </button>
+
             </div>
+
           </Card>
+
         </div>
       </FullScreenLayout>
     );
@@ -384,6 +481,7 @@ const EditStudent = () => {
 
   return (
     <FullScreenLayout>
+
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
 
         {/* ========================================
@@ -391,7 +489,9 @@ const EditStudent = () => {
         ======================================== */}
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
           <div>
+
             <button
               type="button"
               onClick={() =>
@@ -400,6 +500,7 @@ const EditStudent = () => {
               className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
             >
               <ArrowLeft size={17} />
+
               Back to Students
             </button>
 
@@ -410,7 +511,9 @@ const EditStudent = () => {
             <p className="mt-1 text-sm text-slate-500">
               Manage parking access and subscription
             </p>
+
           </div>
+
         </div>
 
         {/* ========================================
@@ -418,28 +521,39 @@ const EditStudent = () => {
         ======================================== */}
 
         <Card>
+
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
 
             {/* Avatar */}
 
             <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-blue-100 text-blue-600">
-  {student.photo ? (
-    <img
-      src={`${axiosInstance.defaults.baseURL.replace(
-        "/api",
-        ""
-      )}/${student.photo.replace(/^\/+/, "")}`}
-      alt={student.name}
-      className="h-full w-full object-cover"
-    />
-  ) : (
-    <UserRound size={35} />
-  )}
-</div>
+
+              {student.photo ? (
+
+                <img
+                  src={`${axiosInstance.defaults.baseURL.replace(
+                    "/api",
+                    ""
+                  )}/${student.photo.replace(
+                    /^\/+/,
+                    ""
+                  )}`}
+                  alt={student.name}
+                  className="h-full w-full object-cover"
+                />
+
+              ) : (
+
+                <UserRound size={35} />
+
+              )}
+
+            </div>
 
             {/* Student Info */}
 
             <div>
+
               <h2 className="text-2xl font-bold text-slate-800">
                 {student.name}
               </h2>
@@ -452,8 +566,11 @@ const EditStudent = () => {
                 {student.course} •{" "}
                 {student.department}
               </p>
+
             </div>
+
           </div>
+
         </Card>
 
         {/* ========================================
@@ -461,6 +578,7 @@ const EditStudent = () => {
         ======================================== */}
 
         <Card title="Parking Access">
+
           <div className="grid gap-5 md:grid-cols-2">
 
             {/* ====================================
@@ -468,6 +586,7 @@ const EditStudent = () => {
             ==================================== */}
 
             <div className="rounded-2xl border border-slate-200 p-5">
+
               <div className="flex items-start justify-between gap-4">
 
                 <div className="flex items-start gap-3">
@@ -483,6 +602,7 @@ const EditStudent = () => {
                   </div>
 
                   <div>
+
                     <h3 className="font-semibold text-slate-800">
                       Account Status
                     </h3>
@@ -491,6 +611,7 @@ const EditStudent = () => {
                       Controls whether the student
                       can use parking.
                     </p>
+
                   </div>
 
                 </div>
@@ -513,6 +634,7 @@ const EditStudent = () => {
                   }`}
                   aria-label="Toggle active status"
                 >
+
                   <span
                     className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
                       formData.active
@@ -520,6 +642,7 @@ const EditStudent = () => {
                         : "left-1"
                     }`}
                   />
+
                 </button>
 
               </div>
@@ -535,6 +658,7 @@ const EditStudent = () => {
                   ? "Student is Active"
                   : "Student is Inactive"}
               </div>
+
             </div>
 
             {/* ====================================
@@ -542,6 +666,7 @@ const EditStudent = () => {
             ==================================== */}
 
             <div className="rounded-2xl border border-slate-200 p-5">
+
               <div className="flex items-start justify-between gap-4">
 
                 <div className="flex items-start gap-3">
@@ -557,6 +682,7 @@ const EditStudent = () => {
                   </div>
 
                   <div>
+
                     <h3 className="font-semibold text-slate-800">
                       Blacklist
                     </h3>
@@ -565,6 +691,7 @@ const EditStudent = () => {
                       Blacklisted students cannot
                       enter the parking area.
                     </p>
+
                   </div>
 
                 </div>
@@ -587,6 +714,7 @@ const EditStudent = () => {
                   }`}
                   aria-label="Toggle blacklist"
                 >
+
                   <span
                     className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
                       formData.blacklisted
@@ -594,6 +722,7 @@ const EditStudent = () => {
                         : "left-1"
                     }`}
                   />
+
                 </button>
 
               </div>
@@ -609,9 +738,11 @@ const EditStudent = () => {
                   ? "Student is Blacklisted"
                   : "Student is Not Blacklisted"}
               </div>
+
             </div>
 
           </div>
+
         </Card>
 
         {/* ========================================
@@ -619,11 +750,13 @@ const EditStudent = () => {
         ======================================== */}
 
         <Card title="Subscription">
+
           <div className="space-y-5">
 
             {/* Subscription Toggle */}
 
             <div className="rounded-2xl border border-slate-200 p-5">
+
               <div className="flex items-center justify-between gap-4">
 
                 <div className="flex items-center gap-3">
@@ -639,6 +772,7 @@ const EditStudent = () => {
                   </div>
 
                   <div>
+
                     <h3 className="font-semibold text-slate-800">
                       Parking Subscription
                     </h3>
@@ -647,6 +781,7 @@ const EditStudent = () => {
                       Enable or disable parking
                       subscription.
                     </p>
+
                   </div>
 
                 </div>
@@ -669,6 +804,7 @@ const EditStudent = () => {
                   }`}
                   aria-label="Toggle subscription"
                 >
+
                   <span
                     className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
                       formData.subscriptionActive
@@ -676,9 +812,11 @@ const EditStudent = () => {
                         : "left-1"
                     }`}
                   />
+
                 </button>
 
               </div>
+
             </div>
 
             {/* Subscription Dates */}
@@ -688,11 +826,13 @@ const EditStudent = () => {
               {/* VALID FROM */}
 
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-slate-700">
                   Valid From
                 </label>
 
                 <div className="relative">
+
                   <CalendarDays
                     size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -701,24 +841,32 @@ const EditStudent = () => {
                   <input
                     type="date"
                     name="validFrom"
-                    value={formData.validFrom}
-                    onChange={handleChange}
+                    value={
+                      formData.validFrom
+                    }
+                    onChange={
+                      handleChange
+                    }
                     disabled={
                       !formData.subscriptionActive
                     }
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-10 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   />
+
                 </div>
+
               </div>
 
               {/* VALID TILL */}
 
               <div>
+
                 <label className="mb-2 block text-sm font-medium text-slate-700">
                   Valid Till
                 </label>
 
                 <div className="relative">
+
                   <CalendarDays
                     size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -727,14 +875,20 @@ const EditStudent = () => {
                   <input
                     type="date"
                     name="validTill"
-                    value={formData.validTill}
-                    onChange={handleChange}
+                    value={
+                      formData.validTill
+                    }
+                    onChange={
+                      handleChange
+                    }
                     disabled={
                       !formData.subscriptionActive
                     }
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-10 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   />
+
                 </div>
+
               </div>
 
             </div>
@@ -742,6 +896,7 @@ const EditStudent = () => {
             {/* Blacklist Warning */}
 
             {formData.blacklisted && (
+
               <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
 
                 <AlertTriangle
@@ -750,6 +905,7 @@ const EditStudent = () => {
                 />
 
                 <div>
+
                   <p className="font-semibold text-red-700">
                     Student is blacklisted
                   </p>
@@ -759,12 +915,146 @@ const EditStudent = () => {
                     this student will not be allowed
                     to enter the parking area.
                   </p>
+
                 </div>
 
               </div>
+
             )}
 
           </div>
+
+        </Card>
+
+        {/* ========================================
+            RESET PASSWORD
+        ======================================== */}
+
+        <Card title="Student Password">
+
+          <div className="space-y-5">
+
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+
+              <div className="flex items-start gap-3">
+
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                  <KeyRound size={21} />
+                </div>
+
+                <div>
+
+                  <h3 className="font-semibold text-slate-800">
+                    Reset Student Password
+                  </h3>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    If the student has forgotten their
+                    password, create a new password here.
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* Password Input */}
+
+              <div className="mt-5">
+
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  New Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={newPassword}
+                    onChange={(e) =>
+                      setNewPassword(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Enter new password"
+                    minLength={6}
+                    disabled={
+                      resettingPassword
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      resettingPassword
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 disabled:cursor-not-allowed"
+                  >
+                    {showPassword ? (
+                      <EyeOff size={19} />
+                    ) : (
+                      <Eye size={19} />
+                    )}
+                  </button>
+
+                </div>
+
+                <p className="mt-2 text-xs text-slate-500">
+                  Minimum 6 characters. The password
+                  will be securely encrypted before
+                  being stored.
+                </p>
+
+              </div>
+
+              {/* Reset Button */}
+
+              <div className="mt-4 flex justify-end">
+
+                <button
+                  type="button"
+                  onClick={
+                    handleResetPassword
+                  }
+                  disabled={
+                    resettingPassword ||
+                    saving ||
+                    deleting
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+
+                  {resettingPassword ? (
+                    <>
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-amber-300 border-t-white" />
+
+                      Resetting...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound size={19} />
+
+                      Reset Password
+                    </>
+                  )}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
         </Card>
 
         {/* ========================================
@@ -779,19 +1069,27 @@ const EditStudent = () => {
             type="button"
             onClick={handleDelete}
             disabled={
-              saving || deleting
+              saving ||
+              deleting ||
+              resettingPassword
             }
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
+
             {deleting ? (
+
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
+
             ) : (
+
               <Trash2 size={19} />
+
             )}
 
             {deleting
               ? "Deleting..."
               : "Delete Student"}
+
           </button>
 
           {/* SAVE / CANCEL */}
@@ -804,7 +1102,9 @@ const EditStudent = () => {
                 navigate("/students")
               }
               disabled={
-                saving || deleting
+                saving ||
+                deleting ||
+                resettingPassword
               }
               className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
             >
@@ -815,25 +1115,35 @@ const EditStudent = () => {
               type="button"
               onClick={handleSave}
               disabled={
-                saving || deleting
+                saving ||
+                deleting ||
+                resettingPassword
               }
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
+
               {saving ? (
+
                 <span className="h-5 w-5 animate-spin rounded-full border-2 border-blue-300 border-t-white" />
+
               ) : (
+
                 <Save size={19} />
+
               )}
 
               {saving
                 ? "Saving..."
                 : "Save Changes"}
+
             </button>
 
           </div>
+
         </div>
 
       </div>
+
     </FullScreenLayout>
   );
 };

@@ -1,6 +1,11 @@
-
 import { useState } from "react";
-import { Upload, UserPlus, X } from "lucide-react";
+import {
+  Upload,
+  UserPlus,
+  X,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "react-toastify";
 
 import Card from "../components/common/Card";
@@ -9,6 +14,7 @@ import axiosInstance from "../api/axioInstance";
 const initialFormData = {
   enrollment: "",
   name: "",
+  password: "",
   course: "B.Tech",
   department: "Computer Science & Engineering",
   vehicle: "",
@@ -18,10 +24,14 @@ const initialFormData = {
 };
 
 const AddStudent = () => {
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] =
+    useState(initialFormData);
 
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState("");
+
+  const [showPassword, setShowPassword] =
+    useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -49,14 +59,20 @@ const AddStudent = () => {
 
     // Image check
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
+      toast.error(
+        "Please select a valid image file."
+      );
+
       e.target.value = "";
       return;
     }
 
     // 5 MB check
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Photo must be less than 5 MB.");
+      toast.error(
+        "Photo must be less than 5 MB."
+      );
+
       e.target.value = "";
       return;
     }
@@ -67,7 +83,9 @@ const AddStudent = () => {
     }
 
     setPhoto(file);
-    setPreview(URL.createObjectURL(file));
+    setPreview(
+      URL.createObjectURL(file)
+    );
   };
 
   // ============================
@@ -83,7 +101,9 @@ const AddStudent = () => {
     setPreview("");
 
     const fileInput =
-      document.getElementById("student-photo");
+      document.getElementById(
+        "student-photo"
+      );
 
     if (fileInput) {
       fileInput.value = "";
@@ -102,37 +122,67 @@ const AddStudent = () => {
     // ----------------------------
 
     if (!formData.enrollment.trim()) {
-      toast.error("Enrollment / Roll No. is required.");
+      toast.error(
+        "Enrollment / Roll No. is required."
+      );
       return;
     }
 
     if (!formData.name.trim()) {
-      toast.error("Student name is required.");
+      toast.error(
+        "Student name is required."
+      );
+      return;
+    }
+
+    if (!formData.password.trim()) {
+      toast.error(
+        "Password is required."
+      );
+      return;
+    }
+
+    if (
+      formData.password.trim().length < 6
+    ) {
+      toast.error(
+        "Password must be at least 6 characters."
+      );
       return;
     }
 
     if (!formData.course) {
-      toast.error("Please select course.");
+      toast.error(
+        "Please select course."
+      );
       return;
     }
 
     if (!formData.department.trim()) {
-      toast.error("Department is required.");
+      toast.error(
+        "Department is required."
+      );
       return;
     }
 
     if (!formData.vehicle.trim()) {
-      toast.error("Vehicle number is required.");
+      toast.error(
+        "Vehicle number is required."
+      );
       return;
     }
 
     if (!formData.validFrom) {
-      toast.error("Please select Valid From date.");
+      toast.error(
+        "Please select Valid From date."
+      );
       return;
     }
 
     if (!formData.validTill) {
-      toast.error("Please select Valid Till date.");
+      toast.error(
+        "Please select Valid Till date."
+      );
       return;
     }
 
@@ -168,6 +218,12 @@ const AddStudent = () => {
         formData.name.trim()
       );
 
+      // Password
+      data.append(
+        "password",
+        formData.password.trim()
+      );
+
       data.append(
         "course",
         formData.course
@@ -192,22 +248,34 @@ const AddStudent = () => {
       );
 
       // Default status
-      data.append("active", "true");
-      data.append("blacklisted", "false");
+      data.append(
+        "active",
+        "true"
+      );
+
+      data.append(
+        "blacklisted",
+        "false"
+      );
 
       // Subscription
       data.append(
         "subscription",
         JSON.stringify({
           active: true,
-          validFrom: formData.validFrom,
-          validTill: formData.validTill,
+          validFrom:
+            formData.validFrom,
+          validTill:
+            formData.validTill,
         })
       );
 
       // Photo
       if (photo) {
-        data.append("photo", photo);
+        data.append(
+          "photo",
+          photo
+        );
       }
 
       // ============================
@@ -218,11 +286,22 @@ const AddStudent = () => {
         "FORM DATA:"
       );
 
-      for (const [key, value] of data.entries()) {
-        console.log(
-          key,
-          value
-        );
+      for (const [
+        key,
+        value,
+      ] of data.entries()) {
+        // Password console me print mat karo
+        if (key === "password") {
+          console.log(
+            key,
+            "[HIDDEN]"
+          );
+        } else {
+          console.log(
+            key,
+            value
+          );
+        }
       }
 
       // ============================
@@ -250,7 +329,11 @@ const AddStudent = () => {
       );
 
       // Reset
-      setFormData(initialFormData);
+      setFormData(
+        initialFormData
+      );
+
+      setShowPassword(false);
 
       removePhoto();
 
@@ -261,8 +344,10 @@ const AddStudent = () => {
       );
 
       const message =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
+        error.response?.data
+          ?.message ||
+        error.response?.data
+          ?.error ||
         "Failed to add student.";
 
       toast.error(message);
@@ -285,7 +370,8 @@ const AddStudent = () => {
         </h1>
 
         <p className="mt-1 text-sm text-slate-500">
-          Register a new student for the parking system
+          Register a new student for the
+          parking system
         </p>
       </div>
 
@@ -340,7 +426,9 @@ const AddStudent = () => {
                 {photo && (
                   <button
                     type="button"
-                    onClick={removePhoto}
+                    onClick={
+                      removePhoto
+                    }
                     className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
                   >
                     <X size={15} />
@@ -371,7 +459,9 @@ const AddStudent = () => {
                   type="file"
                   name="photo"
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoChange}
+                  onChange={
+                    handlePhotoChange
+                  }
                   className="hidden"
                 />
 
@@ -414,8 +504,12 @@ const AddStudent = () => {
                 <input
                   type="text"
                   name="enrollment"
-                  value={formData.enrollment}
-                  onChange={handleChange}
+                  value={
+                    formData.enrollment
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="IPS2024006"
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 uppercase outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -434,12 +528,75 @@ const AddStudent = () => {
                 <input
                   type="text"
                   name="name"
-                  value={formData.name}
-                  onChange={handleChange}
+                  value={
+                    formData.name
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="Jay"
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
+
+              </div>
+
+              {/* Password */}
+
+              <div>
+
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Student Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    name="password"
+                    value={
+                      formData.password
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="Enter password"
+                    minLength={6}
+                    required
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 pr-12 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (prev) =>
+                          !prev
+                      )
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff
+                        size={19}
+                      />
+                    ) : (
+                      <Eye
+                        size={19}
+                      />
+                    )}
+                  </button>
+
+                </div>
+
+                <p className="mt-2 text-xs text-slate-400">
+                  Minimum 6 characters. This password
+                  will be securely encrypted.
+                </p>
 
               </div>
 
@@ -453,8 +610,12 @@ const AddStudent = () => {
 
                 <select
                   name="course"
-                  value={formData.course}
-                  onChange={handleChange}
+                  value={
+                    formData.course
+                  }
+                  onChange={
+                    handleChange
+                  }
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
 
@@ -505,8 +666,12 @@ const AddStudent = () => {
                 <input
                   type="text"
                   name="department"
-                  value={formData.department}
-                  onChange={handleChange}
+                  value={
+                    formData.department
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="Computer Science & Engineering"
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -541,8 +706,12 @@ const AddStudent = () => {
                 <input
                   type="text"
                   name="vehicle"
-                  value={formData.vehicle}
-                  onChange={handleChange}
+                  value={
+                    formData.vehicle
+                  }
+                  onChange={
+                    handleChange
+                  }
                   placeholder="MP07AB1238"
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 uppercase outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -560,8 +729,12 @@ const AddStudent = () => {
 
                 <select
                   name="vehicle_type"
-                  value={formData.vehicle_type}
-                  onChange={handleChange}
+                  value={
+                    formData.vehicle_type
+                  }
+                  onChange={
+                    handleChange
+                  }
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
 
@@ -612,8 +785,12 @@ const AddStudent = () => {
                 <input
                   type="date"
                   name="validFrom"
-                  value={formData.validFrom}
-                  onChange={handleChange}
+                  value={
+                    formData.validFrom
+                  }
+                  onChange={
+                    handleChange
+                  }
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
@@ -631,8 +808,12 @@ const AddStudent = () => {
                 <input
                   type="date"
                   name="validTill"
-                  value={formData.validTill}
-                  onChange={handleChange}
+                  value={
+                    formData.validTill
+                  }
+                  onChange={
+                    handleChange
+                  }
                   required
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
@@ -655,7 +836,8 @@ const AddStudent = () => {
                 Account Status:
               </span>{" "}
 
-              New student will automatically be added as{" "}
+              New student will automatically
+              be added as{" "}
 
               <span className="font-semibold">
                 Active
@@ -703,4 +885,3 @@ const AddStudent = () => {
 };
 
 export default AddStudent;
-

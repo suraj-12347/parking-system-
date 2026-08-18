@@ -4,8 +4,13 @@ import QRCode from "qrcode";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-// Get all students
+// ========================================
+// GET ALL STUDENTS
+// ========================================
+
 export const getStudents = async (req, res) => {
   try {
     const students = await StudentModel.getAll();
@@ -16,6 +21,8 @@ export const getStudents = async (req, res) => {
       students,
     });
   } catch (error) {
+    console.error("GET STUDENTS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -23,12 +30,16 @@ export const getStudents = async (req, res) => {
   }
 };
 
-// Get single student
+// ========================================
+// GET SINGLE STUDENT
+// ========================================
+
 export const getStudent = async (req, res) => {
   try {
     const { enrollment } = req.params;
 
-    const student = await StudentModel.getByEnrollment(enrollment);
+    const student =
+      await StudentModel.getByEnrollment(enrollment);
 
     if (!student) {
       return res.status(404).json({
@@ -42,6 +53,8 @@ export const getStudent = async (req, res) => {
       student,
     });
   } catch (error) {
+    console.error("GET STUDENT ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -49,23 +62,9 @@ export const getStudent = async (req, res) => {
   }
 };
 
-// Create student
-
-
-
-
-
-
-
 // ========================================
-// MULTER CONFIG
+// CREATE STUDENT
 // ========================================
-
-
-
-
-
-
 
 export const createStudent = async (req, res) => {
   try {
@@ -80,6 +79,7 @@ export const createStudent = async (req, res) => {
     const {
       enrollment,
       name,
+      password,
       course,
       department,
       vehicle,
@@ -93,15 +93,49 @@ export const createStudent = async (req, res) => {
     if (
       !enrollment ||
       !name ||
+      !password ||
       !course ||
       !department
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Enrollment, name, course and department are required",
+          "Enrollment, name, password, course and department are required",
       });
     }
+
+    // Password minimum length
+    if (password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password must be at least 6 characters",
+      });
+    }
+
+    // ================================
+    // CHECK DUPLICATE ENROLLMENT
+    // ================================
+
+    const existingStudent =
+      await StudentModel.getByEnrollment(
+        enrollment.trim().toUpperCase()
+      );
+
+    if (existingStudent) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Student with this enrollment already exists",
+      });
+    }
+
+    // ================================
+    // HASH PASSWORD
+    // ================================
+
+    const hashedPassword =
+      await bcrypt.hash(password.trim(), 10);
 
     // ================================
     // STUDENT PHOTO
@@ -169,12 +203,15 @@ export const createStudent = async (req, res) => {
     // GENERATE QR
     // ================================
 
+    const cleanEnrollment =
+      enrollment.trim().toUpperCase();
+
     const qrPath =
-      `${qrDir}/${enrollment}.png`;
+      `${qrDir}/${cleanEnrollment}.png`;
 
     await QRCode.toFile(
       qrPath,
-      enrollment
+      cleanEnrollment
     );
 
     console.log(
@@ -187,24 +224,23 @@ export const createStudent = async (req, res) => {
     // ================================
 
     const student = {
-      enrollment:
-        enrollment.trim().toUpperCase(),
+      enrollment: cleanEnrollment,
 
-      name:
-        name.trim(),
+      name: name.trim(),
 
-      photo:
-        photoPath,
+      // Hashed password
+      password: hashedPassword,
+
+      photo: photoPath,
 
       course,
 
       department:
         department.trim(),
 
-      vehicle:
-        vehicle
-          ? vehicle.trim().toUpperCase()
-          : null,
+      vehicle: vehicle
+        ? vehicle.trim().toUpperCase()
+        : null,
 
       vehicle_type:
         vehicle_type || null,
@@ -223,36 +259,69 @@ export const createStudent = async (req, res) => {
         validTill,
       },
 
-      qr_code:
-        qrPath,
+      qr_code: qrPath,
     };
 
     console.log(
       "FINAL STUDENT:",
-      student
+      {
+        ...student,
+        password: "[HIDDEN]",
+      }
     );
 
     // ================================
     // SAVE TO MYSQL
     // ================================
 
-    await StudentModel.create(
-      student
-    );
+    await StudentModel.create(student);
 
     // ================================
-    // SUCCESS
+    // SUCCESS RESPONSE
     // ================================
 
     return res.status(201).json({
       success: true,
       message:
         "Student created successfully",
-      student,
+
+      student: {
+        enrollment:
+          student.enrollment,
+
+        name:
+          student.name,
+
+        photo:
+          student.photo,
+
+        course:
+          student.course,
+
+        department:
+          student.department,
+
+        vehicle:
+          student.vehicle,
+
+        vehicle_type:
+          student.vehicle_type,
+
+        active:
+          student.active,
+
+        blacklisted:
+          student.blacklisted,
+
+        subscription:
+          student.subscription,
+
+        qr_code:
+          student.qr_code,
+      },
     });
 
   } catch (error) {
-
     console.error(
       "CREATE STUDENT ERROR:",
       error
@@ -267,11 +336,14 @@ export const createStudent = async (req, res) => {
   }
 };
 
+// ========================================
+// UPDATE SUBSCRIPTION
+// ========================================
 
-
-
-// Update subscription
-export const updateSubscription = async (req, res) => {
+export const updateSubscription = async (
+  req,
+  res
+) => {
   try {
     const { enrollment } = req.params;
 
@@ -282,9 +354,15 @@ export const updateSubscription = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Subscription updated",
+      message:
+        "Subscription updated",
     });
   } catch (error) {
+    console.error(
+      "UPDATE SUBSCRIPTION ERROR:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -292,11 +370,22 @@ export const updateSubscription = async (req, res) => {
   }
 };
 
-// Update active / blacklist
-export const updateStatus = async (req, res) => {
+// ========================================
+// UPDATE ACTIVE / BLACKLIST
+// ========================================
+
+export const updateStatus = async (
+  req,
+  res
+) => {
   try {
-    const { enrollment } = req.params;
-    const { active, blacklisted } = req.body;
+    const { enrollment } =
+      req.params;
+
+    const {
+      active,
+      blacklisted,
+    } = req.body;
 
     await StudentModel.updateStatus(
       enrollment,
@@ -306,9 +395,15 @@ export const updateStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Student status updated",
+      message:
+        "Student status updated",
     });
   } catch (error) {
+    console.error(
+      "UPDATE STATUS ERROR:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -316,38 +411,54 @@ export const updateStatus = async (req, res) => {
   }
 };
 
-// Delete student
-export const deleteStudent = async (req, res) => {
-  try {
-    const { enrollment } = req.params;
+// ========================================
+// DELETE STUDENT
+// ========================================
 
-    await StudentModel.delete(enrollment);
+export const deleteStudent = async (
+  req,
+  res
+) => {
+  try {
+    const { enrollment } =
+      req.params;
+
+    await StudentModel.delete(
+      enrollment
+    );
 
     res.json({
       success: true,
-      message: "Student deleted",
+      message:
+        "Student deleted",
     });
   } catch (error) {
+    console.error(
+      "DELETE STUDENT ERROR:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
-
-// ========================================
-// BLACKLIST / REMOVE BLACKLIST STUDENT
-// ========================================
 
 // ========================================
 // UPDATE ACTIVE STATUS
 // ========================================
 
-export const updateActive = async (req, res) => {
+export const updateActive = async (
+  req,
+  res
+) => {
   try {
-    const { enrollment } = req.params;
-    const { active } = req.body;
+    const { enrollment } =
+      req.params;
+
+    const { active } =
+      req.body;
 
     // Validate value
     if (
@@ -358,7 +469,8 @@ export const updateActive = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid active status",
+        message:
+          "Invalid active status",
       });
     }
 
@@ -371,11 +483,12 @@ export const updateActive = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found",
+        message:
+          "Student not found",
       });
     }
 
-    // Convert to MySQL boolean value
+    // Convert to MySQL boolean
     const activeStatus =
       active === true ||
       active === 1
@@ -393,7 +506,9 @@ export const updateActive = async (req, res) => {
       message: activeStatus
         ? "Student activated successfully"
         : "Student deactivated successfully",
-      active: Boolean(activeStatus),
+
+      active:
+        Boolean(activeStatus),
     });
 
   } catch (error) {
@@ -411,7 +526,6 @@ export const updateActive = async (req, res) => {
   }
 };
 
-
 // ========================================
 // UPDATE BLACKLIST STATUS
 // ========================================
@@ -421,8 +535,11 @@ export const updateBlacklist = async (
   res
 ) => {
   try {
-    const { enrollment } = req.params;
-    const { blacklisted } = req.body;
+    const { enrollment } =
+      req.params;
+
+    const { blacklisted } =
+      req.body;
 
     // Validate value
     if (
@@ -433,7 +550,8 @@ export const updateBlacklist = async (
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid blacklist status",
+        message:
+          "Invalid blacklist status",
       });
     }
 
@@ -446,11 +564,12 @@ export const updateBlacklist = async (
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found",
+        message:
+          "Student not found",
       });
     }
 
-    // Convert to MySQL boolean value
+    // Convert to MySQL boolean
     const blacklistStatus =
       blacklisted === true ||
       blacklisted === 1
@@ -468,6 +587,7 @@ export const updateBlacklist = async (
       message: blacklistStatus
         ? "Student blacklisted successfully"
         : "Student removed from blacklist",
+
       blacklisted:
         Boolean(blacklistStatus),
     });
@@ -487,3 +607,269 @@ export const updateBlacklist = async (
   }
 };
 
+// ========================================
+// RESET STUDENT PASSWORD
+// ========================================
+
+export const resetStudentPassword = async (
+  req,
+  res
+) => {
+  try {
+    const { enrollment } =
+      req.params;
+
+    const { newPassword } =
+      req.body;
+
+    // ================================
+    // VALIDATION
+    // ================================
+
+    if (
+      !newPassword ||
+      newPassword.trim().length < 6
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "New password must be at least 6 characters",
+      });
+    }
+
+    // ================================
+    // CHECK STUDENT
+    // ================================
+
+    const student =
+      await StudentModel.getByEnrollment(
+        enrollment
+      );
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Student not found",
+      });
+    }
+
+    // ================================
+    // HASH NEW PASSWORD
+    // ================================
+
+    const hashedPassword =
+      await bcrypt.hash(
+        newPassword.trim(),
+        10
+      );
+
+    // ================================
+    // UPDATE PASSWORD
+    // ================================
+
+    await StudentModel.updatePassword(
+      enrollment,
+      hashedPassword
+    );
+
+    // ================================
+    // SUCCESS
+    // ================================
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Student password reset successfully",
+    });
+
+  } catch (error) {
+    console.error(
+      "RESET PASSWORD ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to reset student password",
+    });
+  }
+};
+
+
+
+// ========================================
+// STUDENT LOGIN
+// ========================================
+
+export const studentLogin = async (req, res) => {
+  try {
+    console.log("========== STUDENT LOGIN ==========");
+    console.log("BODY:", req.body);
+
+    const { enrollment, password } = req.body || {};
+
+    if (!enrollment || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Enrollment and password are required",
+      });
+    }
+
+    const cleanEnrollment = enrollment
+      .trim()
+      .toUpperCase();
+
+    console.log("SEARCHING ENROLLMENT:", cleanEnrollment);
+
+    const student =
+      await StudentModel.getForLogin(
+        cleanEnrollment
+      );
+
+    console.log("FOUND STUDENT:", student);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    // Password check
+    const passwordMatch =
+      await bcrypt.compare(
+        password,
+        student.password
+      );
+
+    console.log(
+      "PASSWORD MATCH:",
+      passwordMatch
+    );
+
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+
+    // Active check
+    if (Number(student.active) !== 1) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is inactive",
+      });
+    }
+
+    // Blacklist check
+    if (Number(student.blacklisted) === 1) {
+      return res.status(403).json({
+        success: false,
+        message: "You are blacklisted",
+      });
+    }
+
+    // JWT
+    const token = jwt.sign(
+      {
+        enrollment: student.enrollment,
+        name: student.name,
+        role: "student",
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      student: {
+        enrollment: student.enrollment,
+        name: student.name,
+        course: student.course,
+        department: student.department,
+        photo: student.photo,
+        vehicle: student.vehicle,
+        vehicle_type: student.vehicle_type,
+        active: Number(student.active) === 1,
+        blacklisted:
+          Number(student.blacklisted) === 1,
+        subscription: {
+          active:
+            Number(student.subscription_active) === 1,
+          validFrom:
+            student.subscription_valid_from,
+          validTill:
+            student.subscription_valid_till,
+        },
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "STUDENT LOGIN ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Login failed",
+    });
+  }
+};
+
+// ==========================================
+// GET LOGGED-IN STUDENT
+// ==========================================
+export const getLoggedInStudent = async (req, res) => {
+  try {
+    console.log("STUDENT TOKEN DATA:", req.user);
+
+    const enrollment = req.user?.enrollment;
+
+    if (!enrollment) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid student token",
+      });
+    }
+
+    const student =
+      await StudentModel.getByEnrollment(enrollment);
+
+    console.log("STUDENT FROM DB:", student);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    // Password frontend ko mat bhejo
+    delete student.password;
+
+    return res.status(200).json({
+      success: true,
+      student,
+    });
+
+  } catch (error) {
+    console.error(
+      "GET LOGGED-IN STUDENT ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get student",
+    });
+  }
+};

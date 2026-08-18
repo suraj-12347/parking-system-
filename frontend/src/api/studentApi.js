@@ -1,11 +1,12 @@
-
 import axiosInstance from "./axioInstance";
 
 // ================================
 // GET ALL STUDENTS
 // ================================
 export const getStudents = async () => {
-  const response = await axiosInstance.get("/students");
+  const response = await axiosInstance.get(
+    "/students"
+  );
 
   return response.data;
 };
@@ -51,7 +52,7 @@ export const updateSubscription = async (
 };
 
 // ================================
-// UPDATE STATUS
+// UPDATE BLACKLIST
 // ================================
 export const updateStudentBlacklist = async (
   enrollment,
@@ -61,6 +62,40 @@ export const updateStudentBlacklist = async (
     `/students/${enrollment}/blacklist`,
     {
       blacklisted,
+    }
+  );
+
+  return response.data;
+};
+
+// ================================
+// UPDATE ACTIVE
+// ================================
+export const updateStudentActive = async (
+  enrollment,
+  active
+) => {
+  const response = await axiosInstance.patch(
+    `/students/${enrollment}/active`,
+    {
+      active,
+    }
+  );
+
+  return response.data;
+};
+
+// ================================
+// RESET STUDENT PASSWORD
+// ================================
+export const resetStudentPassword = async (
+  enrollment,
+  newPassword
+) => {
+  const response = await axiosInstance.patch(
+    `/students/${enrollment}/reset-password`,
+    {
+      newPassword,
     }
   );
 
@@ -78,16 +113,33 @@ export const deleteStudent = async (enrollment) => {
   return response.data;
 };
 
+// ================================
+// GET LOGGED-IN STUDENT
+// ================================
+// ================================
+// GET LOGGED-IN STUDENT
+// ================================
+export const getLoggedInStudent = async () => {
+  const token = localStorage.getItem("studentToken");
 
-export const updateStudentActive = async (
-  enrollment,
-  active
-) => {
-  const response = await axiosInstance.patch(
-    `/students/${enrollment}/active`,
+  console.log("STUDENT TOKEN:", token);
+
+  if (!token) {
+    throw new Error("Student token not found");
+  }
+
+  const response = await axiosInstance.get(
+    "/students/me",
     {
-      active,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
+  );
+
+  console.log(
+    "LOGGED-IN STUDENT RESPONSE:",
+    response.data
   );
 
   return response.data;

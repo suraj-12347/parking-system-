@@ -8,11 +8,22 @@ import {
   updateActive,
   updateBlacklist,
   deleteStudent,
+  resetStudentPassword,
+  studentLogin,
+  getLoggedInStudent,
 } from "../controllers/studentController.js";
+import { uploadStudentPhoto } from "../middleware/studentMiddleware.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import adminAuth from "../middleware/adminAuth.js";
+
+
 
 const router = express.Router();
 
-
+router.post(
+  "/login",
+  studentLogin
+);
 // ========================================
 // STUDENTS
 // ========================================
@@ -21,6 +32,12 @@ router.get(
   "/",
   getStudents
 );
+router.get(
+  "/me",
+  authMiddleware,
+  getLoggedInStudent
+);
+
 
 router.get(
   "/:enrollment",
@@ -29,8 +46,9 @@ router.get(
 
 router.post(
   "/",
-
-  createStudent
+  uploadStudentPhoto.single("photo"),
+  createStudent,
+  adminAuth
 );
 
 
@@ -40,7 +58,8 @@ router.post(
 
 router.patch(
   "/:enrollment/active",
-  updateActive
+  updateActive,
+  adminAuth
 );
 
 
@@ -50,7 +69,8 @@ router.patch(
 
 router.patch(
   "/:enrollment/blacklist",
-  updateBlacklist
+  updateBlacklist,
+  adminAuth
 );
 
 
@@ -60,7 +80,8 @@ router.patch(
 
 router.put(
   "/:enrollment/subscription",
-  updateSubscription
+  updateSubscription,
+  adminAuth
 );
 
 
@@ -70,8 +91,21 @@ router.put(
 
 router.delete(
   "/:enrollment",
-  deleteStudent
+  deleteStudent,
+  adminAuth
 );
+
+
+router.patch(
+  "/:enrollment/reset-password",
+  resetStudentPassword,
+  adminAuth
+);
+
+
+// ========================================
+// LOGGED-IN STUDENT
+// ========================================
 
 
 export default router;

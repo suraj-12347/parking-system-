@@ -13,6 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 // ==========================================
 // WATCHMAN PAGES
 // ==========================================
+
 import EntryGate from "./pages/EntryGate";
 import ExitGate from "./pages/ExitGate";
 import Buttons from "./pages/Buttons";
@@ -20,6 +21,7 @@ import Buttons from "./pages/Buttons";
 // ==========================================
 // ADMIN PAGES
 // ==========================================
+
 import Dashboard from "./pages/Dashboard";
 import AdminPage from "./pages/AdminPage";
 import AdminLogin from "./pages/AdminLogin";
@@ -27,6 +29,7 @@ import AdminLogin from "./pages/AdminLogin";
 // ==========================================
 // ADMIN COMPONENTS
 // ==========================================
+
 import Students from "./components/Students";
 import Logs from "./components/Logs";
 import AddStudent from "./components/AddNewStudent";
@@ -34,30 +37,55 @@ import StudentProfile from "./components/StudentProfile";
 import EditStudent from "./components/EditStudent";
 
 // ==========================================
-// PROTECTED ROUTE
+// ADMIN PROTECTED ROUTE
 // ==========================================
+
 import ProtectedRoute from "./components/ProtectedRoutes";
+
+// ==========================================
+// STUDENT PAGES
+// ==========================================
+
+import StudentLogin from "./pages/student/StudentLogin";
+import StudentDashboard from "./pages/student/StudentDashboard";
+import StudentEnter from "./pages/student/StudentEnter";
+
+// Future pages
+// import StudentLogs from "./pages/student/StudentLogs";
+// import StudentProfilePage from "./pages/student/StudentProfile";
+
+// ==========================================
+// STUDENT PROTECTED ROUTE
+// ==========================================
+
+import StudentPrivateRoute from "./components/StudentPrivateRoute";
 
 // ==========================================
 // PARKING CLEANUP
 // ==========================================
+
 import {
   cleanupParkingSessions,
   startMidnightCleanup,
 } from "./utils/parkingCleanup";
 
 
+// ==========================================
+// APP
+// ==========================================
+
 const App = () => {
 
   // ==========================================
   // PARKING SESSION CLEANUP
   // ==========================================
+
   useEffect(() => {
 
     // App open hone par stale sessions check
     cleanupParkingSessions();
 
-    // Exact 12:00 AM cleanup schedule
+    // Exact midnight cleanup
     const timer = startMidnightCleanup();
 
     return () => {
@@ -109,7 +137,7 @@ const App = () => {
 
         {/* ======================================
             ADMIN LOGIN
-            PUBLIC ROUTE
+            PUBLIC
         ====================================== */}
 
         <Route
@@ -124,14 +152,14 @@ const App = () => {
 
         <Route element={<ProtectedRoute />}>
 
-          {/* ====================================
-              ADMIN LAYOUT
-          ==================================== */}
+          {/* ADMIN LAYOUT */}
 
-          <Route element={<AdminPage />}>
+          <Route
+            element={<AdminPage />}
+          >
 
             {/* ==================================
-                DASHBOARD / OVERVIEW
+                ADMIN DASHBOARD
             ================================== */}
 
             <Route
@@ -184,10 +212,95 @@ const App = () => {
                 NOTIFICATIONS
             ================================== */}
 
-            {/* 
+            {/*
             <Route
               path="/notifications"
               element={<Notifications />}
+            />
+            */}
+
+          </Route>
+
+        </Route>
+
+
+        {/* ======================================
+            STUDENT LOGIN
+            PUBLIC
+        ====================================== */}
+
+        <Route
+          path="/student/login"
+          element={<StudentLogin />}
+        />
+
+
+        {/* ======================================
+            PROTECTED STUDENT MODULE
+        ====================================== */}
+
+        <Route
+          element={<StudentPrivateRoute />}
+        >
+
+          {/* ==================================
+              STUDENT LAYOUT
+          ================================== */}
+
+          <Route
+            path="/student"
+            element={<StudentDashboard />}
+          >
+
+            {/* ==================================
+                DEFAULT STUDENT PAGE
+
+                /student
+                    ↓
+                /student/enter
+            ================================== */}
+
+            <Route
+              index
+              element={
+                <Navigate
+                  to="enter"
+                  replace
+                />
+              }
+            />
+
+
+            {/* ==================================
+                STUDENT ENTER
+            ================================== */}
+
+            <Route
+              path="enter"
+              element={<StudentEnter />}
+            />
+
+
+            {/* ==================================
+                STUDENT LOGS
+            ================================== */}
+
+            {/*
+            <Route
+              path="logs"
+              element={<StudentLogs />}
+            />
+            */}
+
+
+            {/* ==================================
+                STUDENT PROFILE
+            ================================== */}
+
+            {/*
+            <Route
+              path="profile"
+              element={<StudentProfilePage />}
             />
             */}
 

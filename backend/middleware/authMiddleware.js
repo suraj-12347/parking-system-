@@ -7,18 +7,26 @@ const authMiddleware = (req, res, next) => {
     if (!authHeader) {
       return res.status(401).json({
         success: false,
-        message: "Authorization token missing"
+        message: "Authorization token missing",
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    // Expected:
+    // Authorization: Bearer TOKEN
 
-    if (!token) {
+    const parts = authHeader.split(" ");
+
+    if (
+      parts.length !== 2 ||
+      parts[0] !== "Bearer"
+    ) {
       return res.status(401).json({
         success: false,
-        message: "Invalid token format"
+        message: "Invalid token format",
       });
     }
+
+    const token = parts[1];
 
     const decoded = jwt.verify(
       token,
@@ -30,9 +38,14 @@ const authMiddleware = (req, res, next) => {
     next();
 
   } catch (error) {
+    console.error(
+      "AUTH MIDDLEWARE ERROR:",
+      error.message
+    );
+
     return res.status(401).json({
       success: false,
-      message: "Invalid or expired token"
+      message: "Invalid or expired token",
     });
   }
 };
