@@ -35,11 +35,7 @@ try {
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      'https://parking-system2.onrender.com',
-      "https://parkingsystem1234.netlify.app",
-    ],
+    origin: true,
     credentials: true,
   })
 );
